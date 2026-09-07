@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA — Cognitive Defense Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0A0A0B;
+    --bg-panel:#131214;
+    --bg-panel-raised:#19181A;
+    --bg-input:#0E0D0F;
+    --line:#2B2722;
+    --line-soft:#1D1B18;
+    --steel:#726B5C;
+    --text:#EDE7DA;
+    --text-dim:#A79C89;
+    --text-faint:#665F52;
+    --amber:#C9A15C;
+    --amber-dim:#7A6236;
+    --teal:#7C9A85;
+    --teal-dim:#3C4F41;
+    --red:#AD5C50;
+    --red-dim:#5C332C;
+    --grid:rgba(201,161,92,0.045);
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 1.4px) 0 0/34px 34px,
+      radial-gradient(ellipse 1200px 800px at 50% -10%, rgba(201,161,92,0.05), transparent 60%),
+      var(--bg-deep);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--amber-dim); color:var(--text);}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .serif{font-family:'Fraunces', serif;}
+
+  /* ---------- Shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns:64px 1fr 340px;
+    grid-template-rows:52px 1fr;
+    height:100vh;
+    min-height:640px;
+  }
+  @media (max-width:980px){
+    .shell{grid-template-columns:56px 1fr; grid-template-rows:52px 1fr auto;}
+    .rightrail{grid-column:1/3; grid-row:3; border-left:none; border-top:1px solid var(--line);}
+  }
+
+  /* Topbar */
+  .topbar{
+    grid-column:1/4;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:0 22px;
+    border-bottom:1px solid var(--line);
+    background:rgba(19,18,20,0.75);
+    backdrop-filter:blur(8px);
+  }
+  @media (max-width:980px){ .topbar{grid-column:1/3;} }
+  .brand{display:flex; align-items:center; gap:12px; margin-right:6px;}
+  .brand-mark{
+    width:20px;height:20px;
+    border:1px solid var(--amber);
+    transform:rotate(45deg);
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand-mark::before{
+    content:"";
+    position:absolute; inset:5px;
+    background:var(--amber);
+    box-shadow:0 0 10px rgba(201,161,92,0.55);
+  }
+  .brand-name{font-family:'Fraunces', serif; font-weight:500; letter-spacing:0.06em; font-size:17px; color:var(--text);}
+  .brand-sub{font-size:11px; color:var(--text-faint); margin-left:4px; padding-left:12px; border-left:1px solid var(--line); letter-spacing:0.03em;}
+  .topbar-spacer{flex:1;}
+  .sim-badge{
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; color:var(--text-dim);
+    padding:6px 12px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--bg-panel);
+    letter-spacing:0.01em;
+  }
+  .sim-dot{width:5px;height:5px;border-radius:50%;background:var(--amber); animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .clock{font-size:12px; color:var(--text-faint); min-width:150px; text-align:right; letter-spacing:0.02em;}
+
+  /* Left rail */
+  .leftrail{
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    align-items:center;
+    padding:18px 0;
+    gap:4px;
+    background:rgba(19,18,20,0.5);
+  }
+  .rail-btn{
+    width:36px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:var(--radius);
+    color:var(--text-faint);
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .rail-btn:hover{background:var(--bg-panel-raised); color:var(--text-dim);}
+  .rail-btn.active{background:var(--bg-panel-raised); color:var(--amber); border-color:var(--line);}
+  .rail-gap{flex:1;}
+  .rail-btn svg{width:17px;height:17px;}
+
+  /* Main column */
+  .main{
+    overflow-y:auto;
+    padding:30px 30px 60px;
+  }
+  .main-inner{max-width:760px; margin:0 auto;}
+
+  .section-label{
+    font-size:11px;
+    letter-spacing:0.14em;
+    color:var(--amber);
+    margin:0 0 10px;
+    text-transform:uppercase;
+    font-weight:500;
+  }
+  h1.page-title{
+    font-family:'Fraunces', serif;
+    font-size:27px; font-weight:500; margin:0 0 8px;
+    letter-spacing:0.002em;
+    color:var(--text);
+  }
+  .page-desc{font-size:13.5px; color:var(--text-dim); margin:0 0 28px; line-height:1.65; max-width:56ch;}
+
+  /* Intake panel */
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    position:relative;
+  }
+  .panel::before, .panel::after{
+    content:"";
+    position:absolute;
+    width:9px; height:9px;
+    border-top:1px solid var(--amber-dim);
+    border-left:1px solid var(--amber-dim);
+    top:-1px; left:-1px;
+    opacity:0.7;
+    pointer-events:none;
+  }
+  .panel::after{
+    top:auto; left:auto; bottom:-1px; right:-1px;
+    border-top:none; border-left:none;
+    border-bottom:1px solid var(--amber-dim);
+    border-right:1px solid var(--amber-dim);
+  }
+  .intake{padding:22px;}
+  .intake-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px;}
+  .intake-head .lbl{font-size:12px; color:var(--text-dim); letter-spacing:0.04em;}
+  .intake-head .count{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+  textarea{
+    width:100%;
+    min-height:104px;
+    resize:vertical;
+    background:var(--bg-input);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    line-height:1.6;
+    padding:13px;
+    outline:none;
+  }
+  textarea:focus{border-color:var(--amber-dim);}
+  .intake-foot{display:flex; align-items:center; gap:12px; margin-top:14px;}
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Inter', sans-serif; font-size:12.5px; font-weight:600;
+    letter-spacing:0.03em;
+    padding:10px 18px; border-radius:var(--radius);
+    display:inline-flex; align-items:center; gap:8px;
+    transition:filter .15s, transform .05s, border-color .15s;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--amber); color:#161208;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-primary:disabled{background:var(--amber-dim); color:#20180c; cursor:default; filter:none;}
+  .btn-ghost{background:transparent; color:var(--text-dim); border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--steel);}
+  .sample-links{display:flex; gap:16px; margin-left:auto; flex-wrap:wrap;}
+  .sample-link{font-size:11.5px; color:var(--text-faint); cursor:pointer; letter-spacing:0.02em; border-bottom:1px solid var(--line); padding-bottom:1px;}
+  .sample-link:hover{color:var(--amber); border-color:var(--amber-dim);}
+
+  /* Pipeline */
+  .pipeline{margin-top:24px; display:none;}
+  .pipeline.show{display:block;}
+  .pipe-step{
+    display:flex; gap:16px;
+    padding:16px 4px;
+    border-bottom:1px solid var(--line-soft);
+    opacity:0.3;
+    transition:opacity .35s;
+  }
+  .pipe-step:last-child{border-bottom:none;}
+  .pipe-step.active,.pipe-step.done{opacity:1;}
+  .pipe-num{
+    width:22px;height:22px;
+    border:1px solid var(--line);
+    transform:rotate(45deg);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; margin-top:1px;
+    position:relative;
+    transition:border-color .2s, background .2s;
+  }
+  .pipe-num span{transform:rotate(-45deg); font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace; transition:color .2s;}
+  .pipe-step.active .pipe-num{border-color:var(--amber);}
+  .pipe-step.active .pipe-num span{color:var(--amber);}
+  .pipe-step.done .pipe-num{background:var(--teal-dim); border-color:var(--teal);}
+  .pipe-step.done .pipe-num span{color:var(--teal);}
+  .pipe-body{flex:1;}
+  .pipe-title{font-family:'Fraunces', serif; font-size:15px; font-weight:500; margin-bottom:4px; color:var(--text);}
+  .pipe-detail{font-size:12.5px; color:var(--text-dim); line-height:1.7;}
+  .pipe-detail .mono{color:var(--text-dim);}
+  .chip{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:10.5px; padding:3px 9px; border-radius:1px;
+    border:1px solid var(--line); color:var(--text-dim);
+    margin:4px 6px 0 0;
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:0.02em;
+  }
+  .chip.entity{border-color:var(--amber-dim); color:var(--amber);}
+  .chip.ok{border-color:var(--teal-dim); color:var(--teal);}
+  .chip.warn{border-color:var(--red-dim); color:var(--red);}
+
+  /* Heatmap */
+  .heatmap-box{
+    margin-top:10px;
+    padding:14px 16px;
+    background:var(--bg-input);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    line-height:2.15;
+  }
+  .tok{padding:1px 2px; border-radius:2px;}
+
+  /* Briefing */
+  .briefing{
+    margin-top:20px; padding:20px 22px;
+    border-radius:var(--radius);
+    border-left:2px solid var(--amber) !important;
+  }
+  .briefing-head{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .briefing-head .lbl{font-family:'Fraunces', serif; font-size:14px; letter-spacing:0.01em; color:var(--text); font-weight:500;}
+  .briefing-text{font-size:13.5px; line-height:1.8; color:var(--text-dim);}
+  .briefing-text b{color:var(--amber); font-weight:600;}
+
+  /* Feed / archive rows */
+  .feed-row{
+    display:flex; gap:14px; align-items:flex-start;
+    padding:15px 4px;
+    border-bottom:1px solid var(--line-soft);
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .feed-row:hover{background:rgba(201,161,92,0.03);}
+  .feed-row:hover .feed-text{color:var(--text);}
+  .feed-score{
+    width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600;
+    flex-shrink:0; border:1px solid var(--line);
+    transform:rotate(45deg);
+  }
+  .feed-score span{transform:rotate(-45deg); display:block;}
+  .feed-text{font-size:13px; color:var(--text-dim); line-height:1.55; flex:1; transition:color .15s;}
+  .feed-meta{font-size:10.5px; color:var(--text-faint); margin-top:5px; font-family:'IBM Plex Mono', monospace; letter-spacing:0.02em;}
+
+  /* Right rail */
+  .rightrail{
+    border-left:1px solid var(--line);
+    background:rgba(19,18,20,0.5);
+    overflow-y:auto;
+    padding:24px 20px 40px;
+  }
+  .r-block{margin-bottom:30px; padding-bottom:26px; border-bottom:1px solid var(--line-soft);}
+  .r-block:last-child{border-bottom:none;}
+  .r-title{font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--amber); margin-bottom:16px; font-weight:500;}
+
+  /* Gauge */
+  .gauge-wrap{display:flex; flex-direction:column; align-items:center;}
+  .gauge-num{font-family:'Fraunces', serif; font-size:32px; font-weight:500; margin-top:-64px; color:var(--text);}
+  .gauge-label{font-size:10.5px; color:var(--text-faint); margin-top:4px; letter-spacing:0.05em; font-family:'IBM Plex Mono', monospace;}
+  .gauge-status{
+    margin-top:12px; font-size:10.5px; padding:5px 12px; border-radius:1px;
+    font-family:'IBM Plex Mono', monospace; letter-spacing:0.04em;
+  }
+
+  /* Stat rows */
+  .stat-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:12.5px; border-bottom:1px solid var(--line-soft);}
+  .stat-row:last-child{border-bottom:none;}
+  .stat-row .k{color:var(--text-dim);}
+  .stat-row .v{font-family:'IBM Plex Mono', monospace; color:var(--text);}
+
+  /* network graph */
+  .graph-box{background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius);}
+  .graph-legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:10px; color:var(--text-faint); letter-spacing:0.02em;}
+  .legend-dot{width:6px; height:6px; display:inline-block; margin-right:5px; transform:rotate(45deg);}
+
+  .empty-state{
+    padding:34px 16px; text-align:center; color:var(--text-faint); font-size:12px; line-height:1.8;
+  }
+
+  /* Additional intake fields */
+  .field-row{display:flex; gap:18px; margin-top:18px; flex-wrap:wrap;}
+  .field-col{flex:1; min-width:220px;}
+  .field-label{font-size:11.5px; color:var(--text-dim); margin-bottom:8px; display:block; letter-spacing:0.02em;}
+  .url-input{
+    width:100%;
+    background:var(--bg-input);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    padding:10px 12px;
+    outline:none;
+  }
+  .url-input:focus{border-color:var(--amber-dim);}
+  .file-drop{
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    background:var(--bg-input);
+    padding:11px 12px;
+    display:flex; align-items:center; gap:10px;
+    font-size:12px; color:var(--text-faint);
+  }
+  .file-drop input[type=file]{
+    font-family:inherit; font-size:11.5px; color:var(--text-dim);
+    max-width:100%;
+  }
+  .img-preview-box{display:none; align-items:center; gap:10px; margin-top:10px;}
+  .img-preview-box img{
+    width:50px; height:50px; object-fit:cover; border:1px solid var(--line);
+  }
+  .img-meta{font-size:11px; color:var(--text-faint); line-height:1.65; font-family:'IBM Plex Mono', monospace;}
+  .src-badge{font-size:9.5px; padding:2px 8px; border-radius:1px; border:1px solid var(--line); color:var(--text-faint); font-family:'IBM Plex Mono', monospace; margin-left:8px; letter-spacing:0.03em;}
+  .src-badge.real{border-color:var(--teal-dim); color:var(--teal);}
+  .src-badge.sim{border-color:var(--amber-dim); color:var(--amber);}
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:0;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--steel);}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-name">AURA</div>
+      <div class="brand-sub">Cognitive Defense Console</div>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="sim-badge"><span class="sim-dot"></span>Simulation mode — sensor &amp; telemetry data is synthetic</div>
+    <div class="clock mono" id="clock"></div>
+  </div>
+
+  <div class="leftrail">
+    <div class="rail-btn active" data-view="intake" title="Claim intake">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    </div>
+    <div class="rail-btn" data-view="archive" title="Archive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18"/></svg>
+    </div>
+    <div class="rail-gap"></div>
+    <div class="rail-btn" title="Console settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="main-inner" id="view-intake">
+      <p class="section-label">Claim intake</p>
+      <h1 class="page-title">Submit a report for cross-check</h1>
+      <p class="page-desc">Paste a radio transcript, intercepted message, or open-source post. AURA extracts the tactical claim, checks it against sensor telemetry, maps how it's spreading, and returns a deception assessment.</p>
+
+      <div class="panel intake">
+        <div class="intake-head">
+          <span class="lbl">Raw text</span>
+          <span class="count mono" id="charcount">0 characters</span>
+        </div>
+        <textarea id="claimInput" placeholder="e.g. Confirmed: heavy armor column crossed the river at Grid 34S near Kell&#39;s Crossing at 0340, no resistance encountered, more on the way..."></textarea>
+
+        <div class="field-row">
+          <div class="field-col">
+            <span class="field-label">Source link <span class="src-badge real">structural check</span><span class="src-badge sim">wire cross-ref simulated</span></span>
+            <input type="text" class="url-input" id="urlInput" placeholder="https://example-news-outlet.com/article-slug">
+          </div>
+          <div class="field-col">
+            <span class="field-label">Attach image <span class="src-badge real">file data real</span><span class="src-badge sim">reverse-match simulated</span></span>
+            <div class="file-drop">
+              <input type="file" id="imgInput" accept="image/*">
+            </div>
+            <div class="img-preview-box" id="imgPreview"></div>
+          </div>
+        </div>
+
+        <div class="intake-foot">
+          <button class="btn btn-primary" id="analyzeBtn">Run analysis</button>
+          <button class="btn btn-ghost" id="clearBtn">Clear</button>
+          <div class="sample-links">
+            <span class="sample-link" data-sample="0">Load sample: contested strike</span>
+            <span class="sample-link" data-sample="1">Load sample: routine sitrep</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipeline" id="pipeline">
+        <div class="pipe-step" data-step="1">
+          <div class="pipe-num"><span>1</span></div>
+          <div class="pipe-body">
+            <div class="pipe-title">Extract &amp; normalize</div>
+            <div class="pipe-detail" id="step1-detail">Parsing tactical entities…</div>
+          </div>
+        </div>
+        <div class="pipe-step" data-step="2">
+          <div class="pipe-num"><span>2</span></div>
+          <div class="pipe-body">
+            <div class="pipe-title">Ground-truth cross-check</div>
+            <div class="pipe-detail" id="step2-detail">Querying synthetic telemetry…</div>
+            <div class="pipe-detail" id="step2-source-detail" style="margin-top:8px;"></div>
+            <div class="pipe-detail" id="step2-image-detail" style="margin-top:8px;"></div>
+          </div>
+        </div>
+        <div class="pipe-step" data-step="3">
+          <div class="pipe-num"><span>3</span></div>
+          <div class="pipe-body">
+            <div class="pipe-title">Network &amp; attribution mapping</div>
+            <div class="pipe-detail" id="step3-detail">Tracing propagation graph…</div>
+          </div>
+        </div>
+        <div class="pipe-step" data-step="4">
+          <div class="pipe-num"><span>4</span></div>
+          <div class="pipe-body">
+            <div class="pipe-title">Word-level explainability</div>
+            <div class="pipe-detail">
+              <div class="heatmap-box" id="heatmap"></div>
+              <div id="credChips" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="briefing panel" id="briefing" style="display:none;">
+        <div class="briefing-head">
+          <span class="lbl">Auto-generated counter-briefing</span>
+        </div>
+        <div class="briefing-text" id="briefingText"></div>
+      </div>
+    </div>
+
+    <div class="main-inner" id="view-archive" style="display:none;">
+      <p class="section-label">Archive</p>
+      <h1 class="page-title">Previously assessed reports</h1>
+      <p class="page-desc">Every claim run through the console this session, most recent first.</p>
+      <div class="panel" style="padding:4px 14px;" id="archiveList"></div>
+    </div>
+  </div>
+
+  <div class="rightrail">
+    <div class="r-block">
+      <div class="r-title">Deception threat index</div>
+      <div class="gauge-wrap">
+        <svg id="gaugeSvg" viewBox="0 0 200 120" width="180">
+          <path d="M 20 108 A 80 80 0 0 1 180 108" fill="none" stroke="#1F2630" stroke-width="14" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M 20 108 A 80 80 0 0 1 180 108" fill="none" stroke="var(--steel)" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 251" />
+        </svg>
+        <div class="gauge-num mono" id="gaugeNum">—</div>
+        <div class="gauge-label">0–100% scale</div>
+        <div class="gauge-status mono" id="gaugeStatus" style="border:1px solid var(--line); color:var(--text-faint);">awaiting input</div>
+      </div>
+    </div>
+
+    <div class="r-block">
+      <div class="r-title">Sensor cross-check</div>
+      <div id="statBlock">
+        <div class="stat-row"><span class="k">Radar corroboration</span><span class="v" id="statRadar">—</span></div>
+        <div class="stat-row"><span class="k">Thermal signature</span><span class="v" id="statThermal">—</span></div>
+        <div class="stat-row"><span class="k">Transponder match</span><span class="v" id="statTransponder">—</span></div>
+        <div class="stat-row"><span class="k">Geo-consistency</span><span class="v" id="statGeo">—</span></div>
+      </div>
+    </div>
+
+    <div class="r-block">
+      <div class="r-title">Source &amp; image signals</div>
+      <div class="stat-row"><span class="k">Domain structure score</span><span class="v" id="statDomain">—</span></div>
+      <div class="stat-row"><span class="k">Wire cross-reference</span><span class="v" id="statWire">—</span></div>
+      <div class="stat-row"><span class="k">Reverse-image matches</span><span class="v" id="statRevMatch">—</span></div>
+      <div class="stat-row"><span class="k">Earliest known appearance</span><span class="v" id="statEarliest">—</span></div>
+    </div>
+
+    <div class="r-block">
+      <div class="r-title">Propagation &amp; attribution</div>
+      <div class="graph-box">
+        <svg id="graphSvg" viewBox="0 0 300 220" width="100%" height="220"></svg>
+      </div>
+      <div class="graph-legend">
+        <span><span class="legend-dot" style="background:var(--amber);"></span>origin</span>
+        <span><span class="legend-dot" style="background:var(--red);"></span>bot cluster</span>
+        <span><span class="legend-dot" style="background:var(--teal);"></span>verified account</span>
+      </div>
+    </div>
+
+    <div class="r-block">
+      <div class="r-title">Session stats</div>
+      <div class="stat-row"><span class="k">Reports assessed</span><span class="v" id="sReports">0</span></div>
+      <div class="stat-row"><span class="k">Flagged high-risk</span><span class="v" id="sFlagged">0</span></div>
+      <div class="stat-row"><span class="k">Avg. threat index</span><span class="v" id="sAvg">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* ---------------- clock ---------------- */
+  function tick(){
+    const d = new Date();
+    document.getElementById('clock').textContent =
+      d.toISOString().slice(0,19).replace('T',' ') + ' UTC';
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ---------------- nav ---------------- */
+  const railBtns = document.querySelectorAll('.rail-btn[data-view]');
+  railBtns.forEach(b=>b.addEventListener('click', ()=>{
+    railBtns.forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const v = b.dataset.view;
+    document.getElementById('view-intake').style.display = v==='intake' ? '' : 'none';
+    document.getElementById('view-archive').style.display = v==='archive' ? '' : 'none';
+    if(v==='archive') renderArchive();
+  }));
+
+  /* ---------------- deterministic hash ---------------- */
+  function hashStr(s){
+    let h = 2166136261;
+    for(let i=0;i<s.length;i++){
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return Math.abs(h);
+  }
+  function seededRand(seed){
+    let s = seed % 2147483647;
+    if(s<=0) s += 2147483646;
+    return function(){
+      s = (s*16807) % 2147483647;
+      return (s-1)/2147483646;
+    };
+  }
+
+  /* ---------------- lexicons for mock NLP ---------------- */
+  const ACTIONS = ['strike','strikes','struck','breach','breached','incursion','shelling','shelled','deployed','deployment','movement','advanced','advancing','captured','withdrew','withdrawal','ambush','airstrike','bombardment','crossed','engaged','engagement','offensive','retreated','downed','shot down'];
+  const HEDGES = ['confirmed','reportedly','allegedly','sources say','unverified','claims','claimed','breaking','urgent','massive','unprecedented','exclusive','wake up','share this','before it is deleted'];
+  const AMPLIFIERS = ['!!','share','retweet','spread the word','everyone needs to see'];
+  const LOCATION_HINTS = ['grid','sector','near','at','border','crossing','province','district','checkpoint'];
+  const TIME_HINTS = ['0','am','pm','hours','today','yesterday','tonight','dawn','midnight'];
+
+  function tokenize(text){
+    return text.split(/(\s+)/).filter(t=>t.length>0);
+  }
+
+  function extractEntities(text){
+    const lower = text.toLowerCase();
+    const entities = {actions:[], locations:[], times:[], hedges:0};
+    ACTIONS.forEach(a=>{ if(lower.includes(a)) entities.actions.push(a); });
+    const gridMatch = text.match(/grid\s?\w{0,6}\d+\w*/i);
+    if(gridMatch) entities.locations.push(gridMatch[0]);
+    const nearMatch = text.match(/(near|at)\s+[A-Z][a-zA-Z''\-]+(\s[A-Z][a-zA-Z''\-]+)?/);
+    if(nearMatch) entities.locations.push(nearMatch[0].trim());
+    const timeMatch = text.match(/\b([01]?\d|2[0-3])[0-5]\d\b|\b\d{1,2}\s?(am|pm)\b/i);
+    if(timeMatch) entities.times.push(timeMatch[0]);
+    HEDGES.forEach(h=>{ if(lower.includes(h)) entities.hedges++; });
+    return entities;
+  }
+
+  /* ---------------- suspicion scoring per token (mock XAI) ---------------- */
+  function tokenScore(tokenRaw, rand){
+    const t = tokenRaw.toLowerCase().replace(/[^a-z0-9']/g,'');
+    if(!t) return 0;
+    let score = 0;
+    if(HEDGES.some(h=>t===h.replace(/[^a-z0-9']/g,'') || h.includes(t) && t.length>3)) score += 0.55;
+    if(/^[A-Z]{2,}$/.test(tokenRaw) && tokenRaw.length>2) score += 0.3;
+    if(tokenRaw.includes('!')) score += 0.35;
+    if(ACTIONS.some(a=>t===a.replace(/[^a-z0-9']/g,''))) score += 0.15;
+    if(['confirmed','massive','unprecedented','urgent','breaking','exclusive'].includes(t)) score += 0.5;
+    score += (rand()-0.5)*0.18;
+    return Math.max(0, Math.min(1, score));
+  }
+
+  function heatColor(score){
+    if(score < 0.18) return 'transparent';
+    if(score < 0.4) return 'rgba(232,163,61,0.16)';
+    if(score < 0.65) return 'rgba(232,163,61,0.32)';
+    return 'rgba(217,90,79,0.42)';
+  }
+
+  /* ---------------- samples ---------------- */
+  const SAMPLES = [
+    "BREAKING: Confirmed massive airstrike on the eastern depot at Grid 34S near Kell's Crossing, 0340 hours. Unprecedented damage, sources say hundreds of casualties. Share before it's deleted!!",
+    "Sitrep 0600: 2nd platoon completed routine patrol near checkpoint 7. No enemy contact. Resupply convoy scheduled to arrive at 1400 as planned."
+  ];
+  const SAMPLE_URLS = [
+    'https://newsflash-alert24.xyz/shocking-strike-exposed',
+    'https://defense-press-office.gov/sitrep-0600'
+  ];
+  document.querySelectorAll('.sample-link').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.getElementById('claimInput').value = SAMPLES[el.dataset.sample];
+      document.getElementById('urlInput').value = SAMPLE_URLS[el.dataset.sample];
+      updateCharCount();
+    });
+  });
+
+  /* ---------------- image intake ---------------- */
+  let currentImage = null;
+  const imgInput = document.getElementById('imgInput');
+  imgInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file){ currentImage = null; renderImgPreview(); return; }
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const im = new Image();
+      im.onload = function(){
+        currentImage = {
+          name: file.name, size: file.size, type: file.type,
+          width: im.naturalWidth, height: im.naturalHeight,
+          dataUrl: ev.target.result
+        };
+        renderImgPreview();
+      };
+      im.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  function renderImgPreview(){
+    const box = document.getElementById('imgPreview');
+    if(!currentImage){ box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display='flex';
+    box.innerHTML = '<img src="'+currentImage.dataUrl+'" alt="attached image preview">' +
+      '<div class="img-meta mono">'+escapeHtml(currentImage.name)+'<br>'+currentImage.width+'×'+currentImage.height+' · '+Math.round(currentImage.size/1024)+' KB · '+currentImage.type+'</div>';
+  }
+
+  /* ---------------- url structural analysis (real, heuristic) ---------------- */
+  function analyzeUrl(raw){
+    let u;
+    try{ u = new URL(raw.trim()); }
+    catch(e){ try{ u = new URL('https://'+raw.trim()); } catch(e2){ return null; } }
+    const host = u.hostname.toLowerCase();
+    const parts = host.split('.');
+    const tld = parts[parts.length-1];
+    let score = 70;
+    const flags = [];
+    if(u.protocol !== 'https:'){ score -= 15; flags.push('no HTTPS'); }
+    if(/\d/.test(host)){ score -= 10; flags.push('numeric characters in domain'); }
+    const hyphens = (host.match(/-/g)||[]).length;
+    if(hyphens >= 2){ score -= 12; flags.push('multiple hyphens in domain'); }
+    if(parts.length > 3){ score -= 8; flags.push('deep subdomain nesting'); }
+    if(['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly'].includes(host)){ score -= 25; flags.push('link shortener'); }
+    if(['gov','edu','mil'].includes(tld)){ score += 15; flags.push('institutional TLD'); }
+    if(['xyz','info','click','top','work'].includes(tld)){ score -= 12; flags.push('low-trust TLD pattern'); }
+    const path = u.pathname.toLowerCase();
+    if(/(shocking|you-wont-believe|exposed|secret)/.test(path)){ score -= 10; flags.push('sensational URL pattern'); }
+    score = Math.max(5, Math.min(95, score));
+    return {host, score, flags};
+  }
+
+  /* ---------------- char count ---------------- */
+  const input = document.getElementById('claimInput');
+  function updateCharCount(){
+    document.getElementById('charcount').textContent = input.value.length + ' characters';
+  }
+  input.addEventListener('input', updateCharCount);
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    input.value=''; updateCharCount();
+    document.getElementById('urlInput').value='';
+    imgInput.value=''; currentImage=null; renderImgPreview();
+  });
+
+  /* ---------------- session state ---------------- */
+  let archive = [];
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const pipeline = document.getElementById('pipeline');
+
+  function setStep(n, state){
+    const el = pipeline.querySelector('.pipe-step[data-step="'+n+'"]');
+    el.classList.remove('active','done');
+    if(state) el.classList.add(state);
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+  analyzeBtn.addEventListener('click', runAnalysis);
+
+  async function runAnalysis(){
+    const text = input.value.trim();
+    const urlRaw = document.getElementById('urlInput').value.trim();
+    if(!text && !urlRaw && !currentImage){
+      input.focus();
+      input.style.borderColor = 'var(--red)';
+      setTimeout(()=>{ input.style.borderColor=''; }, 900);
+      return;
+    }
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing…';
+    pipeline.classList.add('show');
+    document.getElementById('briefing').style.display = 'none';
+    for(const n of [1,2,3,4]) setStep(n,false);
+    document.getElementById('step2-source-detail').innerHTML = '';
+    document.getElementById('step2-image-detail').innerHTML = '';
+    document.getElementById('credChips').innerHTML = '';
+
+    const seedStr = text + '|' + urlRaw + '|' + (currentImage ? currentImage.name+currentImage.size : '');
+    const seed = hashStr(seedStr || 'empty-report');
+    const rand = seededRand(seed);
+    const entities = extractEntities(text);
+    const urlAnalysis = urlRaw ? analyzeUrl(urlRaw) : null;
+
+    /* Step 1: extraction */
+    setStep(1,'active');
+    await sleep(550);
+    const chips = [];
+    entities.actions.slice(0,3).forEach(a=>chips.push('<span class="chip entity">action · '+a+'</span>'));
+    entities.locations.forEach(l=>chips.push('<span class="chip entity">location · '+l+'</span>'));
+    entities.times.forEach(t=>chips.push('<span class="chip entity">time · '+t+'</span>'));
+    if(urlAnalysis) chips.push('<span class="chip entity">source · '+urlAnalysis.host+'</span>');
+    if(currentImage) chips.push('<span class="chip entity">image · '+currentImage.width+'×'+currentImage.height+'</span>');
+    if(chips.length===0) chips.push('<span class="chip">no tactical entities detected</span>');
+    const tokCount = text ? tokenize(text).filter(t=>t.trim()).length : 0;
+    let step1Line = text ? ('Isolated ' + (entities.actions.length+entities.locations.length+entities.times.length) + ' tactical entities from ' + tokCount + ' tokens.') : 'No free text supplied — extraction limited to source and image metadata.';
+    document.getElementById('step1-detail').innerHTML = step1Line + '<br>' + chips.join('');
+    setStep(1,'done');
+
+    /* Step 2: cross-check */
+    setStep(2,'active');
+    await sleep(650);
+    const hedgePenalty = Math.min(entities.hedges * 14, 40);
+    const baseCorrob = Math.floor(rand()*100);
+    const radar = Math.max(0, Math.min(100, baseCorrob + Math.floor((rand()-0.5)*20)));
+    const thermal = Math.max(0, Math.min(100, baseCorrob + Math.floor((rand()-0.5)*20)));
+    const transponder = Math.max(0, Math.min(100, baseCorrob + Math.floor((rand()-0.5)*25)));
+    const geo = entities.locations.length ? Math.max(0,Math.min(100, baseCorrob + Math.floor((rand()-0.5)*15))) : Math.floor(rand()*40);
+    const avgCorrob = Math.round((radar+thermal+transponder+geo)/4);
+
+    document.getElementById('statRadar').textContent = radar+'%';
+    document.getElementById('statThermal').textContent = thermal+'%';
+    document.getElementById('statTransponder').textContent = transponder+'%';
+    document.getElementById('statGeo').textContent = geo+'%';
+    [['statRadar',radar],['statThermal',thermal],['statTransponder',transponder],['statGeo',geo]].forEach(([id,val])=>{
+      document.getElementById(id).style.color = val>60 ? 'var(--teal)' : (val>35 ? 'var(--amber)' : 'var(--red)');
+    });
+
+    document.getElementById('step2-detail').innerHTML =
+      'Synthetic telemetry corroboration averaged <span class="mono">'+avgCorrob+'%</span> across 4 channels. ' +
+      (avgCorrob < 40 ? '<span class="chip warn">low corroboration</span>' : avgCorrob < 65 ? '<span class="chip">partial corroboration</span>' : '<span class="chip ok">strongly corroborated</span>');
+
+    /* source link cross-check */
+    let wireScore = 50;
+    if(urlAnalysis){
+      wireScore = Math.max(0, Math.min(100, Math.round(urlAnalysis.score*0.5 + rand()*45)));
+      document.getElementById('statDomain').textContent = urlAnalysis.score + '%';
+      document.getElementById('statDomain').style.color = urlAnalysis.score>60?'var(--teal)':urlAnalysis.score>35?'var(--amber)':'var(--red)';
+      document.getElementById('statWire').textContent = wireScore + '%';
+      document.getElementById('statWire').style.color = wireScore>60?'var(--teal)':wireScore>35?'var(--amber)':'var(--red)';
+      document.getElementById('step2-source-detail').innerHTML =
+        '<b style="color:var(--text-dim); font-weight:600;">Source: '+urlAnalysis.host+'</b><br>' +
+        'Domain structure score <span class="mono">'+urlAnalysis.score+'%</span> (real, heuristic) · wire cross-reference <span class="mono">'+wireScore+'%</span> (simulated).' +
+        (urlAnalysis.flags.length ? '<br>' + urlAnalysis.flags.map(f=>'<span class="chip warn">'+f+'</span>').join('') : '<br><span class="chip ok">no structural red flags</span>');
+    } else {
+      document.getElementById('statDomain').textContent = '—';
+      document.getElementById('statWire').textContent = '—';
+    }
+
+    /* image forensic check */
+    let revMatches = 0, imageRisk = 0, earliestLabel = '—';
+    if(currentImage){
+      revMatches = Math.floor(rand()*9);
+      const daysAgo = Math.floor(rand()*400)+1;
+      const earliest = new Date(Date.now() - daysAgo*86400000);
+      earliestLabel = earliest.toISOString().slice(0,10);
+      const ratio = currentImage.size / (currentImage.width*currentImage.height);
+      const strippedMeta = ratio < 0.15;
+      imageRisk = Math.min(100, revMatches*11 + (strippedMeta?15:0));
+      document.getElementById('statRevMatch').textContent = revMatches;
+      document.getElementById('statRevMatch').style.color = revMatches>=4 ? 'var(--red)' : revMatches>=2 ? 'var(--amber)' : 'var(--teal)';
+      document.getElementById('statEarliest').textContent = earliestLabel;
+      document.getElementById('step2-image-detail').innerHTML =
+        '<b style="color:var(--text-dim); font-weight:600;">Image: '+escapeHtml(currentImage.name)+'</b><br>' +
+        currentImage.width+'×'+currentImage.height+', '+Math.round(currentImage.size/1024)+' KB (real file data) · reverse-match scan found <span class="mono">'+revMatches+'</span> prior appearances, earliest <span class="mono">'+earliestLabel+'</span> (simulated).' +
+        (revMatches>=4 ? '<br><span class="chip warn">image recycled from earlier, unrelated context</span>' : '<br><span class="chip ok">no reuse detected</span>');
+    } else {
+      document.getElementById('statRevMatch').textContent = '—';
+      document.getElementById('statEarliest').textContent = '—';
+    }
+    setStep(2,'done');
+
+    /* Step 3: network mapping */
+    setStep(3,'active');
+    await sleep(650);
+    const botCount = Math.floor(rand()*6) + (entities.hedges>1 ? 3 : 0);
+    const verifiedCount = Math.max(1, Math.floor(rand()*3));
+    const spreadRate = Math.floor(rand()*400) + 20;
+    drawGraph(botCount, verifiedCount, rand);
+    document.getElementById('step3-detail').innerHTML =
+      'Traced origin node plus '+ (botCount+verifiedCount) +' amplifying accounts, spreading at ~'+spreadRate+' shares/hr. ' +
+      (botCount >= 4 ? '<span class="chip warn">coordinated bot cluster detected</span>' : '<span class="chip ok">organic spread pattern</span>');
+    setStep(3,'done');
+
+    /* Step 4: explainability heatmap */
+    setStep(4,'active');
+    await sleep(400);
+    const heatmapEl = document.getElementById('heatmap');
+    heatmapEl.innerHTML = '';
+    let maxTokenScore = 0;
+    if(text){
+      const tokens = tokenize(text);
+      tokens.forEach(tok=>{
+        if(!tok.trim()){ heatmapEl.appendChild(document.createTextNode(tok)); return; }
+        const sc = tokenScore(tok, rand);
+        maxTokenScore = Math.max(maxTokenScore, sc);
+        const span = document.createElement('span');
+        span.className = 'tok';
+        span.style.background = heatColor(sc);
+        span.textContent = tok;
+        span.title = 'suspicion weight: ' + sc.toFixed(2);
+        heatmapEl.appendChild(span);
+      });
+    } else {
+      heatmapEl.innerHTML = '<span style="color:var(--text-faint);">no free text supplied</span>';
+    }
+    const credChipsEl = document.getElementById('credChips');
+    const credChips = [];
+    if(urlAnalysis) credChips.push('<span class="chip'+(urlAnalysis.score<40?' warn':urlAnalysis.score>65?' ok':'')+'">source structure '+urlAnalysis.score+'%</span>');
+    if(currentImage) credChips.push('<span class="chip'+(revMatches>=4?' warn':' ok')+'">'+revMatches+' reverse-image matches</span>');
+    credChipsEl.innerHTML = credChips.join('');
+    setStep(4,'done');
+
+    /* Composite deception threat index */
+    const urlPenalty = urlAnalysis ? (100-urlAnalysis.score)*0.35 + (100-wireScore)*0.15 : 0;
+    const imagePenalty = currentImage ? imageRisk*0.3 : 0;
+    const deceptionIndex = Math.round(Math.max(0, Math.min(100,
+      (100-avgCorrob)*0.4 + hedgePenalty*0.7 + botCount*3.5 + maxTokenScore*16 + urlPenalty + imagePenalty + (rand()-0.5)*8
+    )));
+    updateGauge(deceptionIndex);
+    renderBriefing(text, deceptionIndex, avgCorrob, botCount, entities, urlAnalysis, currentImage, revMatches);
+
+    archive.unshift({
+      text, deceptionIndex, avgCorrob, botCount, ts:new Date(),
+      domain: urlAnalysis ? urlAnalysis.host : null,
+      hasImage: !!currentImage
+    });
+    updateSessionStats();
+
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Run analysis';
+    document.getElementById('briefing').style.display = 'block';
+  }
+
+  /* ---------------- gauge ---------------- */
+  function updateGauge(score){
+    const arc = document.getElementById('gaugeArc');
+    const circumference = 251;
+    const frac = score/100;
+    let color = 'var(--teal)';
+    let statusText = 'low risk';
+    if(score>=65){ color='var(--red)'; statusText='high risk — flagged'; }
+    else if(score>=35){ color='var(--amber)'; statusText='elevated — review'; }
+    arc.setAttribute('stroke', color);
+    arc.setAttribute('stroke-dasharray', (circumference*frac)+' '+circumference);
+    document.getElementById('gaugeNum').textContent = score+'%';
+    document.getElementById('gaugeNum').style.color = color;
+    const statusEl = document.getElementById('gaugeStatus');
+    statusEl.textContent = statusText;
+    statusEl.style.borderColor = color;
+    statusEl.style.color = color;
+  }
+
+  /* ---------------- network graph ---------------- */
+  function drawGraph(botCount, verifiedCount, rand){
+    const svg = document.getElementById('graphSvg');
+    svg.innerHTML = '';
+    const cx=150, cy=110, r=75;
+    const total = botCount+verifiedCount;
+    const nodes = [{x:cx,y:cy,type:'origin'}];
+    for(let i=0;i<total;i++){
+      const angle = (i/total)*Math.PI*2 + rand()*0.3;
+      const rr = r*(0.6+rand()*0.4);
+      nodes.push({x: cx+Math.cos(angle)*rr, y: cy+Math.sin(angle)*rr, type: i<botCount?'bot':'verified'});
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    for(let i=1;i<nodes.length;i++){
+      const line = document.createElementNS(ns,'line');
+      line.setAttribute('x1', nodes[0].x); line.setAttribute('y1', nodes[0].y);
+      line.setAttribute('x2', nodes[i].x); line.setAttribute('y2', nodes[i].y);
+      line.setAttribute('stroke', nodes[i].type==='bot' ? 'rgba(217,106,95,0.35)' : 'rgba(79,179,166,0.3)');
+      line.setAttribute('stroke-width','1');
+      svg.appendChild(line);
+    }
+    nodes.forEach((n,i)=>{
+      const c = document.createElementNS(ns,'circle');
+      c.setAttribute('cx', n.x); c.setAttribute('cy', n.y);
+      c.setAttribute('r', i===0 ? 8 : 5);
+      c.setAttribute('fill', n.type==='origin' ? 'var(--amber)' : (n.type==='bot' ? 'var(--red)' : 'var(--teal)'));
+      c.setAttribute('opacity', i===0 ? '1' : '0.85');
+      svg.appendChild(c);
+    });
+  }
+
+  /* ---------------- briefing generator ---------------- */
+  function renderBriefing(text, score, corrob, botCount, entities, urlAnalysis, image, revMatches){
+    const loc = entities.locations[0] || (text ? 'the reported location' : 'the attached source material');
+    let verdict, action;
+    if(score>=65){
+      verdict = 'assessed as <b>likely disinformation</b>';
+      action = 'Recommend immediate public correction and monitoring of the originating account cluster.';
+    } else if(score>=35){
+      verdict = 'assessed as <b>unverified, elevated risk</b>';
+      action = 'Recommend holding the claim pending additional sensor pass before any public response.';
+    } else {
+      verdict = 'assessed as <b>consistent with available telemetry</b>';
+      action = 'No corrective action indicated. Continue routine monitoring.';
+    }
+    let html =
+      'The submitted report referencing ' + loc + ' is ' + verdict + ', with a deception threat index of <b>' + score + '%</b>. ' +
+      'Sensor cross-check returned ' + corrob + '% average corroboration across radar, thermal, and transponder channels. ' +
+      (botCount>=4 ? 'Propagation analysis identified a coordinated amplification cluster of ' + botCount + ' accounts. ' : 'Propagation pattern does not show strong signs of coordinated amplification. ');
+    if(urlAnalysis){
+      html += 'The linked source (<span class="mono">'+urlAnalysis.host+'</span>) scored ' + urlAnalysis.score + '% on structural credibility checks' + (urlAnalysis.flags.length ? (', flagged for ' + urlAnalysis.flags.join(', ') + '. ') : ' with no structural red flags. ');
+    }
+    if(image){
+      html += revMatches>=4
+        ? 'The attached image returned ' + revMatches + ' prior appearances in unrelated contexts, suggesting recycled or mis-captioned imagery. '
+        : 'The attached image showed no significant signs of prior unrelated reuse. ';
+    }
+    html += action;
+    document.getElementById('briefingText').innerHTML = html;
+  }
+
+  /* ---------------- archive ---------------- */
+  function renderArchive(){
+    const list = document.getElementById('archiveList');
+    if(archive.length===0){
+      list.innerHTML = '<div class="empty-state">No reports assessed yet this session.<br>Submit a claim from the intake view to begin.</div>';
+      return;
+    }
+    list.innerHTML = archive.map(item=>{
+      const color = item.deceptionIndex>=65 ? 'var(--red)' : item.deceptionIndex>=35 ? 'var(--amber)' : 'var(--teal)';
+      const snippet = item.text ? (item.text.length>140 ? item.text.slice(0,140)+'…' : item.text) : '(no free text — source/image only)';
+      const badges = (item.domain ? ' <span class="chip">'+item.domain+'</span>' : '') + (item.hasImage ? ' <span class="chip">image attached</span>' : '');
+      return '<div class="feed-row">' +
+        '<div class="feed-score mono" style="border-color:'+color+'; color:'+color+';"><span>'+item.deceptionIndex+'</span></div>' +
+        '<div><div class="feed-text">'+escapeHtml(snippet)+badges+'</div>' +
+        '<div class="feed-meta">'+item.ts.toISOString().slice(0,19).replace('T',' ')+' UTC · corroboration '+item.avgCorrob+'%</div></div>' +
+        '</div>';
+    }).join('');
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  }
+
+  function updateSessionStats(){
+    document.getElementById('sReports').textContent = archive.length;
+    document.getElementById('sFlagged').textContent = archive.filter(a=>a.deceptionIndex>=65).length;
+    const avg = archive.length ? Math.round(archive.reduce((s,a)=>s+a.deceptionIndex,0)/archive.length) : null;
+    document.getElementById('sAvg').textContent = avg===null ? '—' : avg+'%';
+  }
+
+})();
+</script>
+</body>
+</html>
